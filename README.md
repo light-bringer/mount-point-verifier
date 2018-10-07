@@ -1,6 +1,9 @@
 # mount-point_verifier
+
 PROGRAM : mount_point_checker.py
+
 PyVersion : Python 2.7
+
 This module takes multiple mount paths and compares them after backup
 The module has 2 modes : Backup (-b) and Verify (-v)
 
