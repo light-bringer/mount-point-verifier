@@ -10,14 +10,17 @@ The module has 2 modes : Backup (-b) and Verify (-v)
 Input Params : 
   -m <mount_points> All the mount point data that need to be backed up, 
         can be multiple, in that case please use multiple -m params
-  -d </path/to/backup/directory> Path where the backup will be created/stored (Required)
-  -v "unique_input_id" provided after backup (Optional)
-  -b use this param to backup for the first time,
-        will generate a unique ID String that you need to keep for verification (Optional)
+  -b pre-backup data status backup, gives back an unique string, save the same
+  -p post-backup data status backup, gives back an unique string, save the same
+  -v "unique_input_id1,unique_id_2" provided after backups (Pre and Post) with no space in between.
+ 
+
+  Pass -v/-b/-p one at a time
 
 Example : 
- ## To backup : python mount_point_checker.py -b -m "/path/to/mount1" -m "/path/to/mount2" -d "/path/to/backup/dir"
- ## To verify : python mount_point_checker.py -m "/path/to/mount1" -m "/path/to/mount2" -d "/path/to/backup/dir" -v "6b686ff2d15f492486b1148f1083f2e0"
+ ## Pre - backup : python mount_point_checker.py -b -m "/path/to/mount1" -m "/path/to/mount2"
+ ## Post - backup : python mount_point_checker.py -p -m "/path/to/mount1" -m "/path/to/mount2" 
+ ## To verify : python mount_point_checker.py -v "pre_migration_key,post_migration_key" -m "/path/to/mount1" -m "/path/to/mount2"  
 
 """
 
@@ -26,8 +29,9 @@ import uuid
 import datetime
 import argparse
 import pickle
+import hashlib
 
-
+__BACKUPDIR = '/home/lightbringer/Desktop'
 __BACKUPFILEPATH = 'backup.txt'
 
 def read_dir(path):
@@ -106,7 +110,7 @@ class MountData():
     def generate_mountdata(self):
         for mount in self.__MOUNTPOINTS:
             mountdata = MountInfo(mount)
-            self.__MOUNTDETAILS[mount] = mountdata
+            self.__MOUNTDETAILS[hashlib.md5(mount).hexdigest()] = mountdata
 
 
     def get_uuid(self):
@@ -153,7 +157,7 @@ def check_write_permission(srcdir):
         if os.path.isdir(srcdir):
             return os.access(srcdir, os.W_OK)
         else:
-            print "Error: Not a valid directory"
+            print "Error: Not a valid directory, do not have write permission"
             exit(-1)
     except Exception as e:
         print e
@@ -164,22 +168,24 @@ def main(args):
     '''
     the holy grail main ()
     '''
-    backupdir = str(args.backup_path)
     mountlist = []
     for mounts in list(args.mount_paths):
         # remove all trailing slashes from path
         mountlist.append(mounts.rstrip(os.sep))
      
-    takebackupflag = args.b
-    backup_id = args.backup_id
+    pre_migration = args.b
+    post_migration = args.p
+    verify = args.uuid
+    
     currentMount = MountData(mountlist)
 
-    if takebackupflag is True:
-        print " ----- Data Backup Mode ------ "
+    if pre_migration is True:
+        backupdir = os.path.join(__BACKUPDIR, 'pre_migration')
+        os.makedirs(backupdir)
+        print " ----- Pre Migration Mode ------ "
         if check_write_permission(backupdir) is False:
             print " ===== Backup Path is not writeable ====="
             print " ***** ERROR ***** "
-            print " ---- give correct backup path ---- "
             exit(-1)
         else:
             unique_id = uuid.uuid4().hex
@@ -189,54 +195,86 @@ def main(args):
             with open(backupfile, 'wb+') as output:
                 pickle.dump(currentMount, output)
             print "Backup taken!!"
-            print "Please save this unique token : %s"%(unique_id)
+            print "Please save this unique token for pre-migration: %s"%(unique_id)
             exit(0)
-    elif backup_id is not None:
-        backupMount = None
-        backed_up_data_path = os.path.join(backupdir, backup_id)
-        backed_up_data_path = os.path.join(backed_up_data_path, __BACKUPFILEPATH)
-        with open(backed_up_data_path, 'rb') as input:
-            backupMount = pickle.load(input)
-            if compare(backupMount, currentMount):
-                print " *** Consistent data *** "
-                exit(0)
-            else:
-                print " *** Inconsistent Data *** "
-                return(100)
+    elif post_migration is True:
+        backupdir = os.path.join(__BACKUPDIR, 'post_migration')
+        os.makedirs(backupdir)
+        print " ----- Post Migration Mode ------ "
+        if check_write_permission(backupdir) is False:
+            print " ===== Backup Path is not writeable ====="
+            print " ***** ERROR ***** "
+            exit(-1)
+        else:
+            unique_id = uuid.uuid4().hex
+            backupfile = os.path.join(backupdir, unique_id)
+            os.makedirs(backupfile)
+            backupfile = os.path.join(backupfile, __BACKUPFILEPATH)
+            with open(backupfile, 'wb+') as output:
+                pickle.dump(currentMount, output)
+            print "Backup taken!!"
+            print "Please save this unique token for post-migration : %s"%(unique_id)
+            exit(0)
+    elif bool(verify) is True:
+        uuidstrings = args.uuid
+        uuids = uuidstrings.split(',')
+        if(len(uuids)!=2):
+            print "Give only two unique keys, STRICTLY!"
+            exit(-1)
+        pre_migrate_uuid, post_migrate_uuid = uuids[0], uuids[1]
+        pre_backupdir = backupdir = os.path.join(__BACKUPDIR, 'pre_migration')
+        post_backupdir = os.path.join(__BACKUPDIR, 'post_migration')
+        backed_up_data_path_pre = os.path.join(pre_backupdir, pre_migrate_uuid)
+        backed_up_data_path_pre = os.path.join(backed_up_data_path_pre, __BACKUPFILEPATH)
+        backed_up_data_path_post = os.path.join(post_backupdir, post_migrate_uuid)
+        backed_up_data_path_post = os.path.join(backed_up_data_path_post, __BACKUPFILEPATH)
+        preBackupMount, postBackupMount = None, None
+        with open(backed_up_data_path_pre, 'rb') as input:
+            preBackupMount = pickle.load(input)
+        with open(backed_up_data_path_post, 'rb') as input:
+            postBackupMount = pickle.load(input)
+        if compare(preBackupMount, postBackupMount):
+            print " *** Consistent data *** "
+            exit(0)
+        else:
+            print " *** Inconsistent Data *** "
+            return(100)
     
     return
 
 
 if __name__ == '__main__':
-    helpstr = '''
-        PROGRAM : mount_point_checker.py
-        PyVersion : Python 2.7
-        This module takes multiple mount paths and compares them after backup
-        The module has 2 modes : Backup (-b) and Verify (-v)
+    helpstr = """
+    PROGRAM : mount_point_checker.py
+    PyVersion : Python 2.7
+    This module takes multiple mount paths and compares them after backup
+    The module has 2 modes : Backup (-b) and Verify (-v)
 
-        Input Params : 
-          -m <mount_points> All the mount point data that need to be backed up, 
-                can be multiple, in that case please use multiple -m params.
-          -d </path/to/backup/directory> Path where the backup will be created/stored (Required)
-          -v "unique_input_id" provided after backup (Optional)
-          -b use this param to backup for the first time,
-                will generate a unique ID String that you need to keep for verification (Optional)
+    Input Params : 
+    -m <mount_points> All the mount point data that need to be backed up, 
+            can be multiple, in that case please use multiple -m params
+    -b pre-backup data status backup, gives back an unique string, save the same
+    -p post-backup data status backup, gives back an unique string, save the same
+    -v "unique_input_id1,unique_id_2" provided after backups (Pre and Post) with no space in between.
+    
 
-        Example : 
-         ## To backup : python mount_point_checker.py -b -m "/path/to/mount1" -m "/path/to/mount2" -d "/path/to/backup/dir"
-         ## To verify : python mount_point_checker.py -m "/path/to/mount1" -m "/path/to/mount2" -d "/path/to/backup/dir" -v "6b686ff2d15f492486b1148f1083f2e0"
+    Pass -v/-b/-p one at a time
 
-        '''
+    Example : 
+    ## Pre - backup : python mount_point_checker.py -b -m "/path/to/mount1" -m "/path/to/mount2"
+    ## Post - backup : python mount_point_checker.py -p -m "/path/to/mount1" -m "/path/to/mount2" 
+    ## To verify : python mount_point_checker.py -v "pre_migration_key,post_migration_key" -m "/path/to/mount1" -m "/path/to/mount2"  
+
+    """
     Parser = argparse.ArgumentParser()
     Parser.add_argument('-m', dest='mount_paths', help=helpstr, default=[],
                         type=str, action='append', required=True)
-    Parser.add_argument('-d', action='store', dest='backup_path',
-                        help=helpstr, required=True)
     Parser.add_argument('-b', action='store_true')
-    Parser.add_argument('-v', action='store', dest='backup_id')
+    Parser.add_argument('-p', action='store_true')
+    Parser.add_argument('-v', dest='uuid', action='store')
     Parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args, leftovers = Parser.parse_known_args()
-    if args.b is False and args.backup_id is None:
+    if (bool(args.b)*bool(args.p)*bool(args.uuid)) is True:
         print "Error: Give either -b or -v option"
         print "-b : Take Backup"
         print "-v <backup_id> Verify from backup"
