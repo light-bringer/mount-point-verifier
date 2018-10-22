@@ -181,7 +181,10 @@ def main(args):
 
     if pre_migration is True:
         backupdir = os.path.join(__BACKUPDIR, 'pre_migration')
-        os.makedirs(backupdir)
+        if os.path.exists(backupdir):
+            pass
+        else:
+            os.makedirs(backupdir)
         print " ----- Pre Migration Mode ------ "
         if check_write_permission(backupdir) is False:
             print " ===== Backup Path is not writeable ====="
@@ -199,7 +202,10 @@ def main(args):
             exit(0)
     elif post_migration is True:
         backupdir = os.path.join(__BACKUPDIR, 'post_migration')
-        os.makedirs(backupdir)
+        if os.path.exists(backupdir):
+            pass
+        else:
+            os.makedirs(backupdir)
         print " ----- Post Migration Mode ------ "
         if check_write_permission(backupdir) is False:
             print " ===== Backup Path is not writeable ====="
