@@ -229,7 +229,7 @@ if __name__ == '__main__':
         '''
     Parser = argparse.ArgumentParser()
     Parser.add_argument('-m', dest='mount_paths', help=helpstr, default=[],
-                        type=str, action='append', required=True)
+                        type=str, action='append')
     Parser.add_argument('-d', action='store', dest='backup_path',
                         help=helpstr, required=True)
     Parser.add_argument('-b', action='store_true')
