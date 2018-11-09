@@ -30,6 +30,7 @@ import datetime
 import argparse
 import pickle
 import hashlib
+from Mount import MountData
 
 __BACKUPDIR = '/home/debaprid/Desktop'
 __BACKUPFILEPATH = 'backup.txt'
@@ -69,55 +70,6 @@ def get_filesizes(full_filepaths, common_prefix):
         relative_path = os.path.relpath(path, common_prefix)
         fileinfodict[relative_path] = os.stat(path).st_size
     return fileinfodict
-
-
-
-
-class MountInfo():
-    '''
-    Class to generate mount path info
-    '''
-
-    def __init__(self, mount_path):
-        self.__UUID = str(uuid.uuid4())
-        self.__DATE = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        self.__MOUNTPATH = mount_path
-        self.__ALLFILES, self.__COMMONPREFIX = read_dir(mount_path)
-        self.__RELATIVEPATHS = relative_paths(self.__ALLFILES, self.__COMMONPREFIX)
-        self._FILESIZES = get_filesizes(self.__ALLFILES, self.__COMMONPREFIX)
-
-    def gen_dict(self):
-        Dict = {}
-        Dict['uuid'] = self.__UUID
-        Dict['date'] = self.__DATE
-        Dict['mountpath'] = self.__MOUNTPATH
-        Dict['allfiles'] = self.__ALLFILES
-        Dict['relative'] = self.__RELATIVEPATHS
-        Dict['filesizes'] = self.__RELATIVEPATHS
-
-        return Dict
-
-
-
-class MountData():
-    def __init__(self, mountpaths):
-        self.__id = uuid.uuid4().hex
-        self.__MOUNTPOINTS = mountpaths
-        self.__MOUNTDETAILS = {}
-        self.generate_mountdata()
-
-
-    def generate_mountdata(self):
-        for mount in self.__MOUNTPOINTS:
-            mountdata = MountInfo(mount)
-            self.__MOUNTDETAILS[hashlib.md5(mount).hexdigest()] = mountdata
-
-
-    def get_uuid(self):
-        return self.__id
-
-    def get_mountdata(self):
-        return self.__MOUNTDETAILS
 
 
 
@@ -281,9 +233,10 @@ if __name__ == '__main__':
     Parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args, leftovers = Parser.parse_known_args()
     if (bool(args.b)*bool(args.p)*bool(args.uuid)) is True:
-        print "Error: Give either -b or -v option"
-        print "-b : Take Backup"
-        print "-v <backup_id> Verify from backup"
+        print "Error: Give either -b, -p or -v option"
+        print "-b : Take Backup -m <mount_points>"
+        print "-p : Post Backup handling -m <mount_points>"
+        print "-v : <backup_id> Verify from backup"
         exit(-1)
     parseresults = Parser.parse_args()
     main(parseresults)
