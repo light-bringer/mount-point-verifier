@@ -4,7 +4,7 @@
 import uuid
 import datetime
 import hashlib
-from mount_point_checker import get_filesizes, relative_paths
+from mount_point_checker import get_filesizes, relative_paths, read_dir
 
 class MountInfo(object):
     '''

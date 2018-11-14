@@ -33,7 +33,7 @@ import hashlib
 import sys
 import Mount
 
-__BACKUPDIR = '/home/debaprid/Desktop'
+__BACKUPDIR = '/home/lightbringer/Desktop'
 __BACKUPFILEPATH = 'backup.txt'
 
 def read_dir(path):
