@@ -4,8 +4,9 @@
 import uuid
 import datetime
 import hashlib
+from mount_point_checker import get_filesizes, relative_paths
 
-class MountInfo():
+class MountInfo(object):
     '''
     Class to generate mount path info
     '''
@@ -31,7 +32,7 @@ class MountInfo():
 
 
 
-class MountData():
+class MountData(object):
     def __init__(self, mountpaths):
         self.__id = uuid.uuid4().hex
         self.__MOUNTPOINTS = mountpaths

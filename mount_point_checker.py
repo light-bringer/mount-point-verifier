@@ -30,7 +30,8 @@ import datetime
 import argparse
 import pickle
 import hashlib
-from Mount import MountData
+import sys
+import Mount
 
 __BACKUPDIR = '/home/debaprid/Desktop'
 __BACKUPFILEPATH = 'backup.txt'
@@ -129,7 +130,7 @@ def main(args):
     post_migration = args.p
     verify = args.uuid
     
-    currentMount = MountData(mountlist)
+    currentMount = Mount.MountData(mountlist)
 
     if pre_migration is True:
         backupdir = os.path.join(__BACKUPDIR, 'pre_migration')
@@ -238,6 +239,12 @@ if __name__ == '__main__':
         print "-p : Post Backup handling -m <mount_points>"
         print "-v : <backup_id> Verify from backup"
         exit(-1)
+    elif (len(sys.argv) <2):
+        print "Error: Give either -b, -p or -v option"
+        print "-b : Take Backup -m <mount_points>"
+        print "-p : Post Backup handling -m <mount_points>"
+        print "-v : <backup_id> Verify from backup"
+    
     parseresults = Parser.parse_args()
     main(parseresults)
 
