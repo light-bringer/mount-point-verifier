@@ -29,6 +29,15 @@ class MountInfo(object):
         Dict['filesizes'] = self.__RELATIVEPATHS
 
         return Dict
+    
+    def getUUID(self):
+        return self.__UUID
+    
+    def getRelPaths(self):
+        return self.__RELATIVEPATHS
+    
+    def getAllFiles(self):
+        return self.__ALLFILES
 
 
 
